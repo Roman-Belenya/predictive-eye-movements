@@ -3,6 +3,7 @@ from collections import OrderedDict
 import re
 import numpy as np
 import tools as tls
+import matplotlib.pyplot as plt
 
 class Trial(object):
 
@@ -11,8 +12,11 @@ class Trial(object):
         self.filename = filename
         self.read_file()
 
-        self.compute_variables()
-        self.get_fixations()
+        if self.type != 'accuracy':
+            self.compute_variables()
+            self.get_fixations()
+
+        self.exclude = False
 
 
     def read_file(self):
@@ -33,6 +37,7 @@ class Trial(object):
             colheaders = [l.replace(' ', '') for l in lines[8]]
             data_by_rows = [map(float, l) for l in lines[9:]]
             data_by_columns = zip(*data_by_rows)
+            data_by_columns = [np.array(x) for x in data_by_columns]
 
             self.data = OrderedDict(zip(colheaders, data_by_columns))
 
@@ -42,6 +47,10 @@ class Trial(object):
         self.data['eye_x'] = np.mean([self.data['LEyeInterX'], self.data['REyeInterX']], axis = 0)
         self.data['eye_y'] = np.mean([self.data['LEyeInterY'], self.data['REyeInterY']], axis = 0)
         self.data['eye_z'] = np.mean([self.data['LEyeInterZ'], self.data['REyeInterZ']], axis = 0)
+
+        # Velocity unit is metres/frame
+        self.data['wrist11_vel'] = tls.velocity(self.data['Wrist11x'], self.data['Wrist11y'], self.data['Wrist11z'])
+        self.data['wrist12_vel'] = tls.velocity(self.data['Wrist12x'], self.data['Wrist12y'], self.data['Wrist12z'])
 
 
     def check_markers_consistency(self):
@@ -113,9 +122,21 @@ class Trial(object):
             return self.data[idx]
 
 
+
 class Participant(object):
 
     def __init__(self, name, dirname):
 
         self.name = name
         self.dirname = dirname
+
+        self.exclude = False
+
+
+    def organise(self):
+
+        trials = [n for n in os.listdir(self.dirname) if not n.startswith('a')]
+        accuracies = [n for n in os.listdir(self.dirname) if n.startswith('a')]
+
+        trials.sort(key = lambda x: int(x.split('_')[0]))
+        accuracies.sort()
