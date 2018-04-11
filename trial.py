@@ -3,20 +3,51 @@ from collections import OrderedDict
 import re
 import numpy as np
 import tools as tls
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt; plt.ion()
+import os
+import glob
+
 
 class Trial(object):
 
-    def __init__(self, filename):
+    counter = 0
 
+    def __init__(self, filename = None):
+
+        self.increment_counter()
+
+        self.trialname = None
+        self.type = None
+        self.datetime = None
+        self.capture_period = None
+        self.data = None
+        self.exclude = False
         self.filename = filename
+
+        if not filename:
+            self.number = self.get_counter()
+            self.exclude = True
+            return
+
         self.read_file()
+        self.number = self.get_trial_number()
 
         if self.type != 'accuracy':
+            assert self.number == self.get_counter()
             self.compute_variables()
-            self.get_fixations()
+            self.fixations = self.get_fixations()
 
-        self.exclude = False
+    @classmethod
+    def reset_counter(cls):
+        cls.counter = 0
+
+    @classmethod
+    def increment_counter(cls):
+        cls.counter += 1
+
+    @classmethod
+    def get_counter(cls):
+        return cls.counter
 
 
     def read_file(self):
@@ -40,6 +71,16 @@ class Trial(object):
             data_by_columns = [np.array(x) for x in data_by_columns]
 
             self.data = OrderedDict(zip(colheaders, data_by_columns))
+
+
+    def get_trial_number(self):
+
+        name = os.path.split(self.filename)[1]
+        number = name.split('_')[0]
+        try:
+            return int(number)
+        except:
+            return number
 
 
     def compute_variables(self):
@@ -74,14 +115,6 @@ class Trial(object):
         return index, thumb, wrist, eyes
 
 
-    def dispersion(self, eyex, eyez, win):
-
-        d = ( max(eyex[win[0]:win[1]]) - min(eyex[win[0]:win[1]]) ) + \
-            ( max(eyez[win[0]:win[1]]) - min(eyez[win[0]:win[1]]) )
-
-        return d
-
-
     def get_fixations(self, disp_th = 0.01, dur_th = 0.1):
 
         win = [0, int(dur_th * self.framerate)]
@@ -113,7 +146,7 @@ class Trial(object):
             else:
                 win = [x + 1 for x in win]
 
-        self.fixations = fixations
+        return fixations
 
 
     def get_var(self, name):
@@ -127,16 +160,43 @@ class Participant(object):
 
     def __init__(self, name, dirname):
 
+        Trial.reset_counter()
+
         self.name = name
         self.dirname = dirname
-
         self.exclude = False
+        self.organise()
 
 
     def organise(self):
 
-        trials = [n for n in os.listdir(self.dirname) if not n.startswith('a')]
-        accuracies = [n for n in os.listdir(self.dirname) if n.startswith('a')]
+        files = glob.glob(os.path.join(self.dirname, '*.exp'))
 
-        trials.sort(key = lambda x: int(x.split('_')[0]))
-        accuracies.sort()
+        trial_files = [n for n in files if not 'accuracy' in n.lower()]
+        trial_files.sort(key = tls.get_trial_int)
+
+        for i, trialname in enumerate(trial_files):
+            n = tls.get_trial_int(trialname)
+            if n != i+1:
+                trial_files.insert(i, None)
+
+        trial_files = tls.none_pad(trial_files)
+        trials = [Trial(n) for n in trial_files]
+        self.block1 = trials[:30]
+        self.block2 = trials[30:]
+
+        acc_files = [n for n in files if 'accuracy' in n.lower()]
+        acc_files.sort()
+        self.accuracies = [Trial(n) for n in acc_files]
+
+
+    def check_accuracy(self):
+        for acc in self.accuracies:
+            tls.check_accuracy(acc)
+
+    def check_marker(self, marker = 'index'):
+        tls.check_marker(self.block1 + self.block2, marker)
+
+
+    # f.write(pickle.dumps(Participant))
+    # pickle.loads(f.read())

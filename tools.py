@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
 def dispersion(eyex, eyez, win):
 
@@ -22,6 +23,20 @@ def velocity(x, y, z):
     vel = np.sqrt(np.diff(x)**2 + np.diff(y)**2 + np.diff(z)**2)
 
     return vel
+
+
+def none_pad(arr, length = 120):
+
+    while len(arr) < length:
+        arr = np.append(arr, None)
+
+    return arr
+
+
+def get_trial_int(str):
+
+    name = os.path.split(str)[1]
+    return int(name.split('_')[0])
 
 
 def check_accuracy(trial):
@@ -85,4 +100,28 @@ def check_accuracy(trial):
     ax3.set_aspect(asp)
     ax3.legend()
 
+    plt.gcf().suptitle(trial.number)
+
+    plt.show()
+
+
+def check_marker(trials, marker):
+
+    if marker == 'index':
+        types = ('Index7', 'Index8')
+    elif marker == 'thumb':
+        types = ('Thumb9', 'Thumb10')
+    elif marker == 'wrist':
+        types = ('Wrist11', 'Wrist12')
+
+    fig, axs = plt.subplots(1, 2, sharex = True)
+
+    for trial in trials:
+        for i, t in enumerate(types):
+            for dim, col in [('x', 'r'), ('y', 'g'), ('z', 'b')]:
+                if trial.data:
+                    axs[i].plot(trial.data[t + dim], color = col, linewidth = 0.5, alpha = 0.2)
+
+    axs[0].set_title(types[0])
+    axs[1].set_title(types[1])
     plt.show()
