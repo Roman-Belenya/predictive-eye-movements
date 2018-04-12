@@ -52,6 +52,17 @@ def sort_saved_by_date(path):
     return dt
 
 
+def read_template_file(filename):
+    with open(filename, 'rb') as f:
+        lines = [line.rstrip().split() for line in f.readlines()]
+
+    for line in lines:
+        line[0] = int(line[0])
+
+    return lines
+
+
+
 def pickled_participants(filename):
 
     # https://stackoverflow.com/questions/4529815/saving-an-object-data-persistence

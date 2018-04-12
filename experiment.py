@@ -180,14 +180,18 @@ class Participant(object):
         self.best_thumb = None
         self.best_wrist = None
 
+        self.check_trials_order()
+
 
     def __len__(self):
 
-        n = 0
-        for trial in self.iter_trials():
-            if not trial.empty:
-                n += 1
+        n = len( filter(lambda x: not x.exclude, self.iter_trials()) )
+        return n
 
+
+    def len_trials(self, kind, block = 'both'):
+
+        n = len( filter(lambda x: x.type == kind, self.iter_trials(block)) )
         return n
 
 
@@ -243,26 +247,41 @@ class Participant(object):
 
     def identify_condition(self):
 
-        l = r = 0
-
-        for trial in self.iter_trials('block2'):
-            if trial.type == 'leftward':
-                l += 1
-            elif trial.type == 'rightward':
-                r += 1
+        l = self.len_trials('leftward', 'block2')
+        r = self.len_trials('rightward', 'block2')
 
         if l > r:
-            return 'leftward'
+            return 'Left'
         elif r > l:
-            return 'rightward'
+            return 'Right'
         else:
             print 'Impossible to identify condition for {}'.format(self.name)
             return None
 
 
+    def check_trials_order(self):
+
+        if self.condition == 'Left':
+            template = tls.read_template_file('./mm_scripts/left_template.txt')
+        elif self.condition == 'Right':
+            template = tls.read_template_file('./mm_scripts/right_template.txt')
+        else:
+            return
+
+        for trial, info in zip(self.iter_trials(), template):
+            if trial.empty:
+                trial.type = info[1]
+
+            assert trial.number == info[0], '{}, {}'.format(trial.number, info[0])
+            assert trial.type == info[1], '{}, {}'.format(trial.type, info[1])
+
+        print 'all trials are in order'
+
+
     def check_accuracy(self):
         for acc in self.accuracies:
             tls.check_accuracy(acc)
+
 
     def check_marker(self, marker = 'index', get_all = False):
         if get_all:
