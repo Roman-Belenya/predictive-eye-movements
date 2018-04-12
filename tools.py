@@ -1,6 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import glob
+import shutil
+import datetime
+import cPickle as pickle
 
 def dispersion(eyex, eyez, win):
 
@@ -37,6 +41,26 @@ def get_trial_int(str):
 
     name = os.path.split(str)[1]
     return int(name.split('_')[0])
+
+
+def sort_saved_by_date(path):
+    name = os.path.split(path)[1]
+    date = name.lstrip('saved_')
+    date = date.rstrip('.pkl')
+    dt = datetime.datetime.strptime(date, '%d-%b-%Y_%H-%M-%S')
+
+    return dt
+
+
+def pickled_participants(filename):
+
+    # https://stackoverflow.com/questions/4529815/saving-an-object-data-persistence
+    with open(filename, 'rb') as f:
+        while True:
+            try:
+                yield pickle.load(f)
+            except EOFError:
+                break
 
 
 def check_accuracy(trial):
@@ -125,3 +149,24 @@ def check_marker(trials, marker):
     axs[0].set_title(types[0])
     axs[1].set_title(types[1])
     plt.show()
+
+
+def increment_file_names(dir_name, by = 1):
+
+    files = glob.glob(os.path.join(dir_name, '*.exp'))
+    new_dir = os.path.join(dir_name, 'incremented')
+    os.mkdir(new_dir)
+
+    for file in files:
+
+        path, name = os.path.split(file)
+        if name.startswith('a'):
+            continue
+        name_split = name.split('_')
+        name_split[0] = str(int(name_split[0]) + by)
+
+        new_name = os.path.join(new_dir, '_'.join(name_split))
+
+        print '{} ---> {}'.format(file, new_name)
+        shutil.copyfile(file, new_name)
+
