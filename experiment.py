@@ -328,7 +328,7 @@ class Experiment(object):
 
     def __getattr__(self, name):
         try:
-            return self.participants[name]
+            return self.participants[name.lower()]
         except:
             raise AttributeError('Participant {} does not exist'.format(name))
 
@@ -340,7 +340,7 @@ class Experiment(object):
             print dir
             if dir in self.participants.keys() and skip_existing:
                 continue
-            p = Participant(dir, os.path.join(data_dir, dir))
+            p = Participant(dir.lower(), os.path.join(data_dir, dir))
             self.participants[p.name] = p
 
 

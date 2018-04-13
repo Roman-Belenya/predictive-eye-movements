@@ -197,7 +197,6 @@ def rename_manually_exported_trials(dir, activities_file):
         #     continue
 
         activity_info, = filter(lambda x: x[1] == activity_name, activities)
-        print activity_info
 
         if 'leftward' in activity_name:
             cond = 'Left'
@@ -206,7 +205,6 @@ def rename_manually_exported_trials(dir, activities_file):
         elif 'accuracy' in activity_name:
             cond = 'Accuracy'
 
-        new_name = '_'.join([activity_info[0], 'Roman', cond, '.exp'])
-        print new_name
+        new_name = '_'.join([activity_info[0], 'Roman', cond]) + '.exp'
         print '{} ---> {}'.format(filename, new_name)
         os.rename(file, os.path.join(dir, new_name))
