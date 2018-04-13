@@ -181,3 +181,32 @@ def increment_file_names(dir_name, by = 1):
         print '{} ---> {}'.format(file, new_name)
         shutil.copyfile(file, new_name)
 
+
+def rename_manually_exported_trials(dir, activities_file):
+
+    files = glob.glob(os.path.join(dir, '*.exp'))
+
+    with open(activities_file) as f:
+        activities = [line.rstrip().split() for line in f]
+
+    for file in files:
+        filename = os.path.split(file)[-1]
+        activity_name = filename.rstrip('.exp')
+
+        # if 'accuracy' in activity_name:
+        #     continue
+
+        activity_info, = filter(lambda x: x[1] == activity_name, activities)
+        print activity_info
+
+        if 'leftward' in activity_name:
+            cond = 'Left'
+        elif 'rightward' in activity_name:
+            cond = 'Right'
+        elif 'accuracy' in activity_name:
+            cond = 'Accuracy'
+
+        new_name = '_'.join([activity_info[0], 'Roman', cond, '.exp'])
+        print new_name
+        print '{} ---> {}'.format(filename, new_name)
+        os.rename(file, os.path.join(dir, new_name))

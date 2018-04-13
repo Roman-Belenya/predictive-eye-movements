@@ -96,6 +96,10 @@ class Trial(object):
             return number
 
 
+    def exclude_trial(self):
+        self.exclude = True
+
+
     def compute_variables(self):
 
         self.data['eye_x'] = np.mean([self.LEyeInterX, self.REyeInterX], axis = 0)
@@ -259,6 +263,17 @@ class Participant(object):
             return None
 
 
+    def set_markers(index, thumb, wrist):
+
+        self.best_index = index
+        self.best_thumb = thumb
+        self.best_wrist = wrist
+
+
+    def exclude_participant(self):
+        self.exclude = True
+
+
     def check_trials_order(self):
 
         if self.condition == 'Left':
@@ -278,8 +293,13 @@ class Participant(object):
         print 'all trials are in order'
 
 
-    def check_accuracy(self):
-        for acc in self.accuracies:
+    def check_accuracy(self, which = 'both'):
+        if which == 'both':
+            to_check = self.accuracies
+        else:
+            to_check = self.__getattr__(which)
+
+        for acc in to_check:
             tls.check_accuracy(acc)
 
 
