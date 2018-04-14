@@ -310,11 +310,11 @@ class Participant(object):
             l = [marker]
 
         for m in l:
-            tls.check_marker(self.block1 + self.block2, m)
+            tls.check_marker(self.iter_trials(), m)
 
 
     def check_fixations(self):
-        tls.check_fixations(self.block1 + self.block2)
+        tls.check_fixations(self.iter_trials())
 
 
 class Experiment(object):
