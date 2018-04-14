@@ -148,17 +148,58 @@ def check_marker(trials, marker):
         types = ('Thumb9', 'Thumb10')
     elif marker == 'wrist':
         types = ('Wrist11', 'Wrist12')
+    elif marker == 'eyes':
+        types = ('LEyeInter', 'REyeInter')
 
     fig, axs = plt.subplots(1, 2, sharex = True)
 
     for trial in trials:
+
+        if trial.exclude:
+            continue
+
         for i, t in enumerate(types):
             for dim, col in [('x', 'r'), ('y', 'g'), ('z', 'b')]:
-                if trial.data:
-                    axs[i].plot(trial.data[t + dim], color = col, linewidth = 0.5, alpha = 0.2)
+                if marker == 'eyes':
+                    dim = dim.upper()
+                axs[i].plot(trial.data[t + dim], color = col, linewidth = 0.5, alpha = 0.2)
 
     axs[0].set_title(types[0])
     axs[1].set_title(types[1])
+    plt.show()
+
+
+def check_fixations(trials, dim = 'x'):
+
+    if dim == 'x':
+        idx = 3
+        pos = trials[0].ObjectX[0]
+    elif dim == 'z':
+        idx = 4
+        pos = trials[0].ObjectZ[0]
+    else:
+        return
+
+    fig, ax = plt.subplots()
+
+    ax.axvline(100, color = 'k', linestyle = ':', alpha = 0.5)
+    ax.axvline(300, color = 'k', linestyle = ':', alpha = 0.5)
+    ax.axhline(pos, color = 'k', linestyle = ':', alpha = 0.5)
+
+    for trial in trials:
+
+        if trial.exclude:
+            continue
+
+        columns = zip(*trial.fixations)
+        # plt.plot(columns[3], columns[4], 'k.', alpha = 0.5)
+        ax.scatter(columns[0], columns[idx],
+            marker = '.',
+            c = 'b',
+            alpha = 0.5,
+            s = np.array(columns[2]) * 0.5)
+        ax.plot(columns[0], columns[idx], 'b-', alpha = 0.1, linewidth = 0.3)
+
     plt.show()
 
 

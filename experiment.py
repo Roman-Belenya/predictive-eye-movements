@@ -153,7 +153,7 @@ class Trial(object):
                 fixations.append([
                     win[0], # start frame
                     win[1], # end frame
-                    (win[1] - win[0] + 1.0) / self.framerate, # duration
+                    (win[1] - win[0] + 1.0),# / self.framerate, # duration
                     np.mean(eyex[win[0]:win[1]]), # centre x
                     np.mean(eyez[win[0]:win[1]]), # centre z
                     ])
@@ -305,12 +305,16 @@ class Participant(object):
 
     def check_marker(self, marker = 'index', get_all = False):
         if get_all:
-            l = ['index', 'thumb', 'wrist']
+            l = ['index', 'thumb', 'wrist', 'eyes']
         else:
             l = [marker]
 
         for m in l:
             tls.check_marker(self.block1 + self.block2, m)
+
+
+    def check_fixations(self):
+        tls.check_fixations(self.block1 + self.block2)
 
 
 class Experiment(object):
