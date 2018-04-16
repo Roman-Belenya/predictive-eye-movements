@@ -8,7 +8,7 @@ import os
 import glob
 import sys
 import cPickle as pickle
-
+import warnings
 
 
 class Trial(object):
@@ -213,10 +213,10 @@ class Participant(object):
     def __getattr__(self, trial):
 
         try:
-            kind, ind = re.match('([a-z])([0-9]+)', trial).groups()
+            kind, ind = re.match('([at])([0-9]+)', trial).groups()
             ind = int(ind)
 
-            assert kind in ['t', 'a']; assert 0 < ind < 121
+            assert 0 < ind < 121
 
             if kind == 't':
                 return (self.block1 + self.block2)[ind-1]
@@ -259,11 +259,20 @@ class Participant(object):
         elif r > l:
             return 'Right'
         else:
-            print 'Impossible to identify condition for {}'.format(self.name)
+            warning.warn('Impossible to identify condition for {}'.format(self.name))
             return None
 
 
-    def set_markers(index, thumb, wrist):
+    def set_markers(index, thumb, wrist, overwrite = False):
+
+        assert index in ['Index7', 'Index8'], 'Invalid marker {}'.format(index)
+        assert thumb in ['Thumb9', 'Thumb10'], 'Invalid marker {}'.format(thumb)
+        assert wrist in ['Wrist11', 'Wrist12'], 'Invalid marker {}'.format(wrist)
+
+        already_set = any( [self.best_index, self.best_thumb, self.best_wrist] )
+        if already_set and not overwrite:
+            warnings.wars('Markers for {} already set'.format(self.name))
+            return
 
         self.best_index = index
         self.best_thumb = thumb
@@ -294,6 +303,7 @@ class Participant(object):
 
 
     def check_accuracy(self, which = 'both'):
+
         if which == 'both':
             to_check = self.accuracies
         else:
@@ -304,6 +314,7 @@ class Participant(object):
 
 
     def check_marker(self, marker = 'index', get_all = False):
+
         if get_all:
             l = ['index', 'thumb', 'wrist', 'eyes']
         else:
@@ -335,6 +346,11 @@ class Experiment(object):
             return self.participants[name.lower()]
         except:
             raise AttributeError('Participant {} does not exist'.format(name))
+
+
+    def __len__(self):
+        n = filter(lambda x: not x.exclude, self)
+        return n
 
 
     def read_participants_data(self, data_dir, skip_existing = False):
