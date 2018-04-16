@@ -40,7 +40,6 @@ class Trial(object):
         if self.type != 'accuracy':
             assert self.number == self.get_counter()
             self.compute_variables()
-            self.fixations = self.get_fixations()
 
 
     def __getattr__(self, var_name):
@@ -110,6 +109,8 @@ class Trial(object):
         self.data['wrist11_vel'] = tls.velocity(self.Wrist11x, self.Wrist11y, self.Wrist11z)
         self.data['wrist12_vel'] = tls.velocity(self.Wrist12x, self.Wrist12y, self.Wrist12z)
 
+        self.fixations = self.get_fixations()
+
 
     def check_markers_consistency(self):
 
@@ -164,6 +165,17 @@ class Trial(object):
                 win = [x + 1 for x in win]
 
         return fixations
+
+
+    def find_fixation(self, time):
+
+        # Find last fixation that starts before time
+        fixs = filter(lambda x: x[0] <= time, self.fixations)
+        try:
+            return fixs[-1]
+        except:
+            warnings.warn('No fixation that starts before frame {}, trial {}'.format(time, self.get_trial_number()))
+            return None
 
 
 
@@ -259,7 +271,7 @@ class Participant(object):
         elif r > l:
             return 'Right'
         else:
-            warning.warn('Impossible to identify condition for {}'.format(self.name))
+            warnings.warn('Impossible to identify condition for {}'.format(self.name))
             return None
 
 
@@ -324,8 +336,8 @@ class Participant(object):
             tls.check_marker(self.iter_trials(), m)
 
 
-    def check_fixations(self):
-        tls.check_fixations(self.iter_trials())
+    def check_fixations(self, block = 'both'):
+        tls.check_fixations(self.iter_trials(block))
 
 
 class Experiment(object):
