@@ -74,6 +74,12 @@ def pickled_participants(filename):
                 break
 
 
+def chunks(items, n):
+    # https://stackoverflow.com/questions/312443/how-do-you-split-a-list-into-evenly-sized-chunks
+    for i in range(0, len(items), n):
+        yield items[i:i + n]
+
+
 def check_accuracy(trial):
 
     eye_x = trial.data['averageXeye'] * 100

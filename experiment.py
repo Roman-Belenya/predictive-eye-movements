@@ -204,36 +204,39 @@ class Participant(object):
 
     def __len__(self):
 
-        n = len( filter(lambda x: not x.exclude, self.iter_trials()) )
+        n = len( filter(lambda x: not x.exclude, iter(self)) )
         return n
 
 
-    def len_trials(self, kind, block = 'both'):
+    def len_trials(self, kind, parts = range(4)):
+        '''Return the length of leftward or rightward trials'''
 
-        n = len( filter(lambda x: x.type == kind, self.iter_trials(block)) )
+        n = len( filter(lambda x: x.type == kind, self.iter_trials(parts)) )
         return n
 
 
-    def iter_trials(self, block = 'both'):
+    def __iter__(self):
 
-        if block == 'both':
-            to_iter = self.block1 + self.block2
-        else:
-            to_iter = getattr(self, block)
-
-        for trial in to_iter:
+        for trial in self.trials:
             yield trial
 
 
-    def iter_trials(self, block = 'both'):
+    def iter_trials(self, parts = range(4)):
+        '''Iterate over trials in self.trials
+        part 0: trials 1-30
+        part 1: trials 31-60
+        part 2: trials 61-90
+        part 3: trials 91-120'''
 
-        if block == 'both':
-            to_iter = self.block1 + self.block2
-        else:
-            to_iter = getattr(self, block)
+        if type(parts) is not list:
+            parts = [parts]
+        assert all([0 <= t < 4 for t in parts])
 
-        for trial in to_iter:
-            yield trial
+        trial_chunks = tls.chunks(self.trials, 30)
+        for part, chunk in enumerate(trial_chunks):
+            if part in parts:
+                for trial in chunk:
+                    yield trial
 
 
     def __getattr__(self, trial):
@@ -245,7 +248,7 @@ class Participant(object):
             assert 0 < ind < 121
 
             if kind == 't':
-                return (self.block1 + self.block2)[ind-1]
+                return self.trials[ind-1]
             elif kind == 'a':
                 return self.accuracies[ind-1]
 
@@ -266,9 +269,7 @@ class Participant(object):
                 trial_files.insert(i, None)
 
         trial_files = tls.none_pad(trial_files)
-        trials = [Trial(n) for n in trial_files]
-        self.block1 = trials[:30]
-        self.block2 = trials[30:]
+        self.trials = [Trial(n) for n in trial_files]
 
         acc_files = [n for n in files if 'accuracy' in n.lower()]
         acc_files.sort()
@@ -277,8 +278,8 @@ class Participant(object):
 
     def identify_condition(self):
 
-        l = self.len_trials('leftward', 'block2')
-        r = self.len_trials('rightward', 'block2')
+        l = self.len_trials('leftward', parts = [1,2,3])
+        r = self.len_trials('rightward', parts = [1,2,3])
 
         if l > r:
             return 'Left'
@@ -350,8 +351,8 @@ class Participant(object):
             tls.check_marker(self.iter_trials(), m)
 
 
-    def check_fixations(self, block = 'both'):
-        tls.check_fixations(self.iter_trials(block))
+    def check_fixations(self):
+        tls.check_fixations(iter(self))
 
 
 class Experiment(object):
