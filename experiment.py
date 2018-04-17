@@ -167,17 +167,20 @@ class Trial(object):
         return fixations
 
 
-    def find_fixation(self, time):
+    def find_fixations(self, time = None, timerange = None):
 
-        # Find last fixation that starts before time
-        fixs = filter(lambda x: x[0] <= time, self.fixations)
-        try:
-            return fixs[-1]
-        except:
-            warnings.warn('No fixation that starts before frame {}, trial {}'.format(time, self.get_trial_number()))
+        if time:
+            fixs = filter(lambda x: x[0] <= time, self.fixations)
+        elif timerange:
+            fixs = filter(lambda x: start <= x[0] <= end, self.fixations)
+        else:
+            raise Exception('Specify either time or timerange')
+
+        if not fixs:
+            warnings.warn('No fixations found, trial {}'.format(self.get_trial_number()))
             return None
 
-
+        return fixs[-1] if time else fixs
 
 
 class Participant(object):
@@ -209,6 +212,17 @@ class Participant(object):
 
         n = len( filter(lambda x: x.type == kind, self.iter_trials(block)) )
         return n
+
+
+    def iter_trials(self, block = 'both'):
+
+        if block == 'both':
+            to_iter = self.block1 + self.block2
+        else:
+            to_iter = getattr(self, block)
+
+        for trial in to_iter:
+            yield trial
 
 
     def iter_trials(self, block = 'both'):
@@ -275,7 +289,7 @@ class Participant(object):
             return None
 
 
-    def set_markers(index, thumb, wrist, overwrite = False):
+    def set_markers(self, index, thumb, wrist, overwrite = False):
 
         assert index in ['Index7', 'Index8'], 'Invalid marker {}'.format(index)
         assert thumb in ['Thumb9', 'Thumb10'], 'Invalid marker {}'.format(thumb)
@@ -361,7 +375,7 @@ class Experiment(object):
 
 
     def __len__(self):
-        n = filter(lambda x: not x.exclude, self)
+        n = len(filter(lambda x: not x[1].exclude, iter(self)))
         return n
 
 

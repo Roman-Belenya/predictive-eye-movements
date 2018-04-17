@@ -173,18 +173,14 @@ def check_fixations(trials, dim = 'x'):
 
     if dim == 'x':
         idx = 3
-        pos = trials[0].ObjectX[0]
+        marker = 'ObjectX'
     elif dim == 'z':
         idx = 4
-        pos = trials[0].ObjectZ[0]
+        marker = 'ObjectZ'
     else:
         return
 
     fig, ax = plt.subplots()
-
-    ax.axvline(100, color = 'k', linestyle = ':', alpha = 0.5)
-    ax.axvline(300, color = 'k', linestyle = ':', alpha = 0.5)
-    ax.axhline(pos, color = 'k', linestyle = ':', alpha = 0.5)
 
     for trial in trials:
 
@@ -199,6 +195,14 @@ def check_fixations(trials, dim = 'x'):
             alpha = 0.5,
             s = np.array(columns[2]) * 0.5)
         ax.plot(columns[0], columns[idx], 'b-', alpha = 0.1, linewidth = 0.3)
+
+    ax.axvline(100, color = 'k', linestyle = ':', alpha = 0.7, linewidth = 1)
+    ax.axvline(300, color = 'k', linestyle = ':', alpha = 0.7, linewidth = 1)
+
+    pos = trial.__getattr__(marker)[101]
+    ax.axhline(pos, color = 'k', linestyle = '-', alpha = 0.7, linewidth = 0.5)
+    ax.axhline(pos + 0.02, color = 'k', linestyle = ':', alpha = 0.7, linewidth = 1)
+    ax.axhline(pos - 0.02, color = 'k', linestyle = ':', alpha = 0.7, linewidth = 1)
 
     plt.show()
 
