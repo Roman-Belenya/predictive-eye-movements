@@ -172,6 +172,7 @@ class Trial(object):
         if time:
             fixs = filter(lambda x: x[0] <= time, self.fixations)
         elif timerange:
+            start, end = timerange
             fixs = filter(lambda x: start <= x[0] <= end, self.fixations)
         else:
             raise Exception('Specify either time or timerange')
@@ -208,10 +209,10 @@ class Participant(object):
         return n
 
 
-    def len_trials(self, kind, parts = range(4)):
+    def len_trials(self, kind):
         '''Return the length of leftward or rightward trials'''
 
-        n = len( filter(lambda x: x.type == kind, self.iter_trials(parts)) )
+        n = len( filter(lambda x: x.type == kind, iter(self)) )
         return n
 
 
@@ -221,8 +222,8 @@ class Participant(object):
             yield trial
 
 
-    def iter_trials(self, parts = range(4)):
-        '''Iterate over trials in self.trials
+    def iter_parts(self, parts = range(4)):
+        '''Iterate over parts in self.trials
         part 0: trials 1-30
         part 1: trials 31-60
         part 2: trials 61-90
@@ -235,8 +236,7 @@ class Participant(object):
         trial_chunks = tls.chunks(self.trials, 30)
         for part, chunk in enumerate(trial_chunks):
             if part in parts:
-                for trial in chunk:
-                    yield trial
+                yield part, chunk
 
 
     def __getattr__(self, trial):
@@ -278,8 +278,8 @@ class Participant(object):
 
     def identify_condition(self):
 
-        l = self.len_trials('leftward', parts = [1,2,3])
-        r = self.len_trials('rightward', parts = [1,2,3])
+        l = self.len_trials('leftward')
+        r = self.len_trials('rightward')
 
         if l > r:
             return 'Left'
@@ -319,7 +319,7 @@ class Participant(object):
         else:
             return
 
-        for trial, info in zip(self.iter_trials(), template):
+        for trial, info in zip(iter(self), template):
             if trial.empty:
                 trial.type = info[1]
 
@@ -348,7 +348,7 @@ class Participant(object):
             l = [marker]
 
         for m in l:
-            tls.check_marker(self.iter_trials(), m)
+            tls.check_marker(iter(self), m)
 
 
     def check_fixations(self):
@@ -359,25 +359,34 @@ class Experiment(object):
 
     def __init__(self):
 
-        self.participants = OrderedDict()
+        self.participants = []
 
 
     def __iter__(self):
 
-        for name, participant in self.participants.items():
-            yield name, participant
+        for participant in self.participants:
+            yield participant
 
 
     def __getattr__(self, name):
         try:
-            return self.participants[name.lower()]
+            p = filter(lambda x: x.name == name.lower(), iter(self))
+            assert p
+            return p[0]
         except:
             raise AttributeError('Participant {} does not exist'.format(name))
 
 
     def __len__(self):
-        n = len(filter(lambda x: not x[1].exclude, iter(self)))
+        n = len(filter(lambda x: not x.exclude, iter(self)))
         return n
+
+
+    def get_group(self, group):
+
+        group = filter(lambda x: x.condition == group, iter(self))
+        for participant in group:
+            yield participant
 
 
     def read_participants_data(self, data_dir, skip_existing = False):
@@ -385,10 +394,8 @@ class Experiment(object):
         dirs = os.listdir(data_dir)
         for dir in dirs:
             print dir
-            if dir in self.participants.keys() and skip_existing:
-                continue
             p = Participant(dir.lower(), os.path.join(data_dir, dir))
-            self.participants[p.name] = p
+            self.participants.append(p)
 
 
     def save_data(self, filename = None):
@@ -398,7 +405,7 @@ class Experiment(object):
             filename = './saved_' + dt.strftime('%d-%b-%Y_%H-%M-%S') + '.pkl'
 
         with open(filename, 'ab') as f:
-            for participant in self.participants.values():
+            for participant in self.participants:
                 pickle.dump(participant, f, pickle.HIGHEST_PROTOCOL)
 
 
@@ -411,7 +418,7 @@ class Experiment(object):
             print '---> from {}:'.format(filename)
 
         for participant in tls.pickled_participants(filename):
-            self.participants[participant.name] = participant
+            self.participants.append(participant)
             print '\t' + participant.name
 
         return self

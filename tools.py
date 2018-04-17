@@ -1,4 +1,5 @@
 import numpy as np
+np.random.seed(1)
 import matplotlib.pyplot as plt
 import os
 import glob
@@ -179,10 +180,10 @@ def check_fixations(trials, dim = 'x'):
 
     if dim == 'x':
         idx = 3
-        marker = 'ObjectX'
+        pos = 0.607
     elif dim == 'z':
         idx = 4
-        marker = 'ObjectZ'
+        pos = 0.322
     else:
         return
 
@@ -205,7 +206,6 @@ def check_fixations(trials, dim = 'x'):
     ax.axvline(100, color = 'k', linestyle = ':', alpha = 0.7, linewidth = 1)
     ax.axvline(300, color = 'k', linestyle = ':', alpha = 0.7, linewidth = 1)
 
-    pos = trial.__getattr__(marker)[101]
     ax.axhline(pos, color = 'k', linestyle = '-', alpha = 0.7, linewidth = 0.5)
     ax.axhline(pos + 0.02, color = 'k', linestyle = ':', alpha = 0.7, linewidth = 1)
     ax.axhline(pos - 0.02, color = 'k', linestyle = ':', alpha = 0.7, linewidth = 1)
@@ -259,3 +259,59 @@ def rename_manually_exported_trials(dir, activities_file):
         new_name = '_'.join([activity_info[0], 'Roman', cond]) + '.exp'
         print '{} ---> {}'.format(filename, new_name)
         os.rename(file, os.path.join(dir, new_name))
+
+
+def make_blocks():
+
+    np.random.seed(1)
+    acc = '''Prefs "Roman_Accuracy"\nBiofeedback\nExport "{}_Roman_Accuracy.exp"\n\n'''
+    left = '''Prefs "Roman_Left"\nBiofeedback\nExport "{}_Roman_Left.exp"\n\n'''
+    right = '''Prefs "Roman_Right"\nBiofeedback\nExport "{}_Roman_Right.exp"\n\n'''
+
+    n1 = 30
+    p1 = 0.5
+    n2 = 90
+    p2 = 0.8
+
+    # Unbiased script
+    n_left = n_right = int(round(n1 * p1))
+    seq = [left] * n_left + [right] * n_right
+    for i in range(100):
+        np.random.shuffle(seq)
+
+    with open('unbiased.txt', 'w') as f:
+        f.write(acc.format('a0'))
+        for i, line in enumerate(seq):
+            f.write(line.format(i+1))
+
+
+    n_left = int(round(p2 * n2))
+    n_right = int(round((1-p2) * n2))
+
+    ratio = n_left / n_right + 1
+    left_bias_seq = []
+    right_bias_seq = []
+
+    for i in range(n2 / ratio):
+
+        part_l = [left] * ratio
+        part_r = [right] * ratio
+
+        n = np.random.choice(range(ratio))
+        part_l[n] = right
+        part_r[n] = left
+        left_bias_seq.extend(part_l)
+        right_bias_seq.extend(part_r)
+
+
+    # Left bias script
+    with open('left_bias.txt', 'w') as f:
+        f.write(acc.format('a1'))
+        for i, line in enumerate(left_bias_seq):
+            f.write(line.format(i+n1+1))
+
+    # Right bias script
+    with open('right_bias.txt', 'w') as f:
+        f.write(acc.format('a1'))
+        for i, line in enumerate(right_bias_seq):
+            f.write(line.format(i+n1+1))
