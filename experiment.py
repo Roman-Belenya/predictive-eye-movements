@@ -22,6 +22,7 @@ class Trial(object):
         self.trialname = None
         self.type = None
         self.datetime = None
+        self.framerate = None
         self.capture_period = None
         self.data = None
         self.exclude = False
@@ -167,21 +168,19 @@ class Trial(object):
         return fixations
 
 
-    def find_fixations(self, time = None, timerange = None):
+    def find_fixations(self, timerange):
 
-        if time:
-            fixs = filter(lambda x: x[0] <= time, self.fixations)
-        elif timerange:
-            start, end = timerange
-            fixs = filter(lambda x: start <= x[0] <= end, self.fixations)
-        else:
-            raise Exception('Specify either time or timerange')
+        start, end = timerange
+        if end == 'end':
+            end = len(self.ObjectX)
+
+        fixs = filter(lambda x: start <= x[0] <= end, self.fixations)
 
         if not fixs:
-            warnings.warn('No fixations found, trial {}'.format(self.get_trial_number()))
+            # warnings.warn('No fixations found, trial {}'.format(self.get_trial_number()))
             return None
 
-        return fixs[-1] if time else fixs
+        return fixs
 
 
 class Participant(object):
@@ -233,10 +232,9 @@ class Participant(object):
             parts = [parts]
         assert all([0 <= t < 4 for t in parts])
 
-        trial_chunks = tls.chunks(self.trials, 30)
-        for part, chunk in enumerate(trial_chunks):
-            if part in parts:
-                yield part, chunk
+        trial_chunks = list(tls.chunks(self.trials, 30))
+        for i in parts:
+            yield i, trial_chunks[i]
 
 
     def __getattr__(self, trial):
@@ -353,6 +351,8 @@ class Participant(object):
 
     def check_fixations(self):
         tls.check_fixations(iter(self))
+
+
 
 
 class Experiment(object):

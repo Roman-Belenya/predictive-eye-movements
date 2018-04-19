@@ -1,6 +1,7 @@
 import numpy as np
 np.random.seed(1)
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import os
 import glob
 import shutil
@@ -315,3 +316,174 @@ def make_blocks():
         f.write(acc.format('a1'))
         for i, line in enumerate(right_bias_seq):
             f.write(line.format(i+n1+1))
+
+
+
+
+def within_range(xy, lim_x, lim_y):
+    return lim_x[0] < xy[0] < lim_x[1] and lim_y[0] < xy[1] < lim_y[1]
+
+
+
+class AnalyseFixations(object):
+
+    def __init__(self, exp, timerange, index = None):
+
+        self.exp = exp
+        self.timerange = timerange
+        self.index = index
+
+        self.n_total = 0
+        self.n_excluded = 0
+        self.data = None
+
+        self.get_fixations()
+
+    @property
+    def excluded_percent(self):
+        return float(self.n_excluded * 100) / self.n_total
+
+    def __iter__(self):
+
+        for group in self.data:
+            for part in group:
+                for fix in part:
+                    yield fix
+
+
+    def get_fixations(self):
+
+        left = [[], [], [], []]
+        right = [[], [], [], []]
+
+        total_n = 0.0
+        excluded_n = 0.0
+
+        for participant in self.exp:
+            if participant.exclude:
+                continue
+
+            for i, part in participant.iter_parts():
+                for trial in part:
+
+                    if trial.exclude:
+                        continue
+
+                    self.n_total += 1
+
+                    fs = trial.find_fixations(self.timerange)
+
+                    if not fs:
+                        self.n_excluded += 1
+                        continue
+
+                    if self.index >= len(fs): # uncertain here: pos/neg index
+                        self.n_excluded += 1
+                        continue
+
+                    if self.index is not None:
+                        fs = [fs[self.index]]
+
+                    if participant.condition == 'Left':
+                        left[i].extend(fs)
+                    elif participant.condition == 'Right':
+                        right[i].extend(fs)
+
+        self.data = [left, right]
+
+
+    def remove_outliers(self, offscreen = True, std = True):
+
+        if not (offscreen or std):
+            return self
+
+        new_data = []
+
+        for group in self.data:
+            new_group = []
+            for part in group:
+
+                orig_len = len(part)
+
+                if offscreen:
+
+                    lim_x = (0.337, 0.874)
+                    lim_z = (0.173, 0.473)
+
+                    part = [x for x in part if within_range(x[3:5], lim_x, lim_z)]
+
+                if std:
+
+                    avg_x, avg_z = np.mean(part, axis = 0)[3:5]
+                    std_x, std_z = np.std(part, axis = 0)[3:5]
+
+                    lim_x = (avg_x - 2*std_x, avg_x + 2*std_x)
+                    lim_z = (avg_z - 2*std_z, avg_z + 2*std_z)
+
+
+                    part = [x for x in part if within_range(x[3:5], lim_x, lim_z)]
+
+                new_group.append(part)
+                self.n_excluded += orig_len - len(part)
+
+            new_data.append(new_group)
+        self.data = new_data
+
+        return self
+
+
+    def make_histograms(self, title = None, idx = 3):
+
+        fig, axs = plt.subplots(nrows = 2, ncols = 4, sharex = True, sharey = True, figsize = (10,7))
+
+        for i, row in enumerate(axs):
+            for k, ax in enumerate(row):
+
+                d = [x[idx] for x in self.data[i][k]]
+
+                ax.hist(d, bins = 30)
+                ax.set_xlim([0.607 - 0.05, 0.607 + 0.05])
+                ax.set_title('part {}, n = {}'.format(k, len(self.data[i][k])))
+
+                avg = np.mean(d)
+                med = np.median(d)
+                std = np.std(d)
+                stderr = std / np.sqrt(len(d))
+
+                ax.axvspan(0.607-0.02, 0.607+0.02, color = 'k', alpha = 0.1)
+                ax.axvline(avg, color = 'r', linewidth = 1)
+                ax.axvspan(avg - stderr, avg + stderr, color = 'r', alpha = 0.1)
+
+        plt.suptitle(title)
+
+
+
+    def make_scatters(self, title = None):
+
+        fig, axs = plt.subplots(nrows = 2, ncols = 4, figsize = (10,7))
+
+        for i, row in enumerate(axs):
+            for k, ax in enumerate(row):
+
+                xs = [x[3] for x in self.data[i][k]]
+                ys = [x[4] for x in self.data[i][k]]
+
+                ax.scatter(xs, ys, s = 5, alpha = 0.5, edgecolors = 'none')
+                ax.axis('square')
+                ax.set_xlim([0.607-0.05, 0.607+0.05])
+                ax.set_ylim([0.322-0.05, 0.322+0.05])
+
+                ax.set_title('part {}, n = {}'.format(k, len(self.data[i][k])))
+
+                avg = np.mean(self.data[i][k], axis = 0)[3:5]
+                med = np.median(self.data[i][k], axis = 0)[3:5]
+                std = np.std(self.data[i][k], axis = 0)[3:5]
+
+                ax.plot(avg[0], avg[1], 'rx')
+                ax.errorbar(avg[0], avg[1], xerr = std[0], yerr = std[1], color = 'k', linewidth = 1)
+                ax.add_patch(patches.Rectangle([0.607-0.01, 0.322-0.01], 0.02, 0.02,
+                    color = 'k', alpha = 0.1))
+                # ax.add_patch(patches.Ellipse(avg, 2*std[0], 2*std[1],
+                #     color = 'r', alpha = 0.1))
+
+        plt.suptitle(title)
