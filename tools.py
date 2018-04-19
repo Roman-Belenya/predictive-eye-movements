@@ -467,8 +467,9 @@ class AnalyseFixations(object):
 
                 xs = [x[3] for x in self.data[i][k]]
                 ys = [x[4] for x in self.data[i][k]]
+                ss = [x[2] * 0.1 for x in self.data[i][k]]
 
-                ax.scatter(xs, ys, s = 5, alpha = 0.5, edgecolors = 'none')
+                ax.scatter(xs, ys, s = ss, alpha = 0.5, edgecolors = 'none')
                 ax.axis('square')
                 ax.set_xlim([0.607-0.05, 0.607+0.05])
                 ax.set_ylim([0.322-0.05, 0.322+0.05])
